@@ -1,3 +1,8 @@
+/*---------------------------------------
+Задачи 3, 4, 5 - приняты.
+*/---------------------------------------
+
+
 -- Output the number of movies in each category, sorted descending.--
 SELECT 
     name, 
@@ -12,6 +17,20 @@ FROM (
 ) AS cat_film
 GROUP BY name
 ORDER BY name DESC;
+/*------------------------------------
+Попробуй сделать без подзапроса cat_film и сравнить результаты. 
+Подзапросы могут быть менее оптимальны для планировщика и усложнить чтение. Так что использовать их следует в случае если есть обоснованная необходимость.
+
+COUNT(DISTINCT title) - для подсчёта уникальных значений лучше использовать уникальный идентификатор сущности. 
+Попробуй и сравни результаты.
+(как правило на уникальные идентификаторы накидываются констрейны в бд. 
+И записать одинаковые айдишники не получится.
+А вот в названии фильма может быть ошибка и случайно заипшут одно имя в два разных айдишника - в таком случае запрос может вернуть нерелевантный вывод) 
+
+ORDER BY name DESC - соответствует задаче, но следует подумать о пользе для пользователя. 
+Если в задании у нас кол-во фильмов в каждой категории, будет ли сортировка по имени в обратном алфавитном порядке полезна?
+Что может быть более информативной альтернативой?
+*/------------------------------------
 
 --Output the 10 actors whose movies rented the most, sorted in descending order.--
 -- rental_rate является оценкой , поэтому расчет будет для среднего значения --
@@ -34,6 +53,16 @@ GROUP BY full_afr.first_name, full_afr.last_name
 ORDER BY rate DESC
 LIMIT 10; 
 
+/*------------------------------------
+Тоже попробуй без подзапроса.
+
+Возможно rented the most - какие фильмы чаще всего были в прокате. 
+В итоговом запросе ожидаю увидеть использование таблицы rental.
+
+GROUP BY - что произойдёт если в базе буду актёры с одинаковым именем и фамилией? 
+Попробуй использовать более корректную группировку.
+*/------------------------------------
+
 --Output the category of movies on which the most money was spent.--
 -- все join выполнены как inner join, т.к. любые nun в правых частях join ломают дальнейшую цепочку связей,-- 
 --например, фильмы без инвентарного номера, или те, которе не брали в аренду --
@@ -49,6 +78,10 @@ GROUP BY c.name
 ORDER BY total_spent DESC
 LIMIT 1;
 
+/*------------------------------------
+Отличное наблюдение и красивое решение!
+*/------------------------------------
+
 -- Print the names of movies that are not in the inventory. Write a query without using the IN operator. --
 
 SELECT 
@@ -57,6 +90,10 @@ SELECT
 FROM film f
 LEFT JOIN inventory i ON f.film_id = i.film_id
 WHERE i.inventory_id IS NULL;
+
+/*------------------------------------
+Супер!
+*/------------------------------------
 
 --Output the top 3 actors who have appeared the most in movies in the “Children” category. --
 --If several actors have the same number of movies, output all of them.--
@@ -78,6 +115,9 @@ FROM (
 ) AS ranked_actors
 WHERE rank_ch <= 3;
 
+/*------------------------------------
+Всё верно. Корректное применение оконной функции, отдельный лайк за trim и where
+*/------------------------------------
 
 --Output cities with the number of active and inactive customers (active - customer.active = 1). --
 --Sort by the number of inactive customers in descending order.--
@@ -91,6 +131,11 @@ JOIN address ad ON c.address_id = ad.address_id
 JOIN city ct ON ad.city_id = ct.city_id
 ORDER BY inactive_count DESC;
 
+/*------------------------------------
+В выводе ожидаю увидеть по одному упоминанию на каждый город. 
+(Сейчас скорее всего возвращает столько раз город, сколько всего клиентов и в каждой строке будет дублироваться сумма для города.)
+*/------------------------------------
+
 --Output the category of movies that have the highest number of total rental hours in the city (customer.address_id in this city) --
 --and that start with the letter “a”. Do the same for cities that have a “-” in them. Write everything in one query.
 
@@ -102,11 +147,11 @@ WITH rental_hours_cte AS (
         ROUND(SUM(EXTRACT(EPOCH FROM (r.return_date - r.rental_date)) / 3600), 0)::INT AS rental_hours
     FROM rental r
     JOIN inventory inv ON r.inventory_id = inv.inventory_id
-    JOIN film f ON f.film_id = inv.film_id
+    JOIN film f ON f.film_id = inv.film_id 
     JOIN film_category fc ON f.film_id = fc.film_id
     JOIN category c ON fc.category_id = c.category_id
-    JOIN payment p ON p.rental_id = r.rental_id
-    JOIN customer cus ON cus.customer_id = p.customer_id
+    JOIN payment p ON p.rental_id = r.rental_id --(1)
+    JOIN customer cus ON cus.customer_id = p.customer_id --(2)
     JOIN address a ON a.address_id = cus.address_id
     JOIN city ct ON ct.city_id = a.city_id
     WHERE LOWER(f.title) LIKE 'a%'
@@ -149,7 +194,15 @@ WHERE rnk = 1
 
 ORDER BY group_type, city;
 
+/*------------------------------------
 
+(1) - есть ли необходимость в этом джойне?
+(2) - есть ли другой вариант? наиболее оптимальный
+
+Подумай можно ли оптимизировать двойное ранжирование.
+
+ROUND и ::INT возможно излишне, попробуй без него
+*/------------------------------------
  
 
 
